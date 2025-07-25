@@ -6,15 +6,36 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart'; 
 
-class ListItineraryPage extends StatelessWidget {
+class ListItineraryPage extends StatefulWidget {
   const ListItineraryPage({Key? key}) : super(key: key);
 
   @override
+  State<ListItineraryPage> createState() => _ListItineraryPageState();
+}
+
+class _ListItineraryPageState extends State<ListItineraryPage> {
+  late DatabaseReference _itinerariesRef;
+  final User? _user = FirebaseAuth.instance.currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_user != null) {
+      _itinerariesRef = FirebaseDatabase.instance.ref('itineraries/${_user!.uid}');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    final ref = FirebaseDatabase.instance
-        .ref('itineraries/${user!.uid}');
+    if (_user == null) {
+      return const Scaffold(
+        body: Center(
+          child: Text("Silakan login terlebih dahulu."),
+        ),
+      );
+    }
 
     return ScreenUtilInit(
       designSize: const Size(375, 812),
@@ -24,18 +45,17 @@ class ListItineraryPage extends StatelessWidget {
           centerTitle: true,
           title: const Text(
             "Daftar Itinerary",
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+            style: TextStyle(color: Colors.black, fontFamily: "Roboto"),
           ),
           backgroundColor: Colors.white,
         ),
         body: StreamBuilder<DatabaseEvent>(
-          stream: ref.onValue,
+          stream: _itinerariesRef.onValue,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
-            final value = snapshot.data?.snapshot.value;
-            if (value == null) {
+            if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
               return Center(
                 child: Text(
                   "Belum ada itinerary.",
@@ -43,91 +63,80 @@ class ListItineraryPage extends StatelessWidget {
                 ),
               );
             }
-            final data = Map<String, dynamic>.from(value as Map);
-            final entries = data.entries.toList().reversed.toList();
+            final data = Map<String, dynamic>.from(snapshot.data!.snapshot.value as Map);
+            final entries = data.entries.toList()
+              ..sort((a, b) => b.key.compareTo(a.key));
 
             return RefreshIndicator(
               onRefresh: () async {
-                // pull-to-refresh triggers UI update
-                await Future.delayed(const Duration(milliseconds: 300));
+                await Future.delayed(const Duration(seconds: 1));
+                if (mounted) {
+                  setState(() {});
+                }
               },
               child: ListView.builder(
                 padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
                 itemCount: entries.length,
-                itemBuilder: (context, index) {
+                itemBuilder: (itemContext, index) { 
                   final id = entries[index].key;
                   final item = Map<String, dynamic>.from(entries[index].value);
                   final name = item['name'] ?? 'Tanpa Nama';
                   final created = item['createdAt']?.split('T').first ?? '-';
 
-                  return Container(
+                  return Card(
+                    color: Colors.white,
                     margin: EdgeInsets.only(bottom: 12.h),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.grey),
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(color: Colors.grey),
                       borderRadius: BorderRadius.circular(12.r),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 8.r,
-                          offset: Offset(0, 4.h),
-                        ),
-                      ],
                     ),
                     child: ListTile(
-                      contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16.w, vertical: 12.h),
+                      contentPadding: EdgeInsets.only(left: 16.w, right: 8.w, top: 8.h, bottom: 8.h),
                       title: Text(
                         name,
                         style: TextStyle(
                             fontWeight: FontWeight.w600, fontSize: 16.sp),
                       ),
-                      subtitle: Text(
-                        'Dibuat: $created',
-                        style: TextStyle(fontSize: 12.sp, color: Colors.grey[600]),
+                      subtitle: Padding(
+                        padding: EdgeInsets.only(top: 4.h),
+                        child: Text(
+                          'Dibuat: $created',
+                          style: TextStyle(fontSize: 12.sp, color: Colors.grey[600]),
+                        ),
                       ),
-                      trailing: PopupMenuButton<String>(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.r)),
-                        onSelected: (value) {
-                          if (value == 'edit') {
-                            _showEditDialog(context, ref, id, name);
-                          } else if (value == 'delete') {
-                            ref.child(id).remove();
-                          }
-                        },
-                        itemBuilder: (_) => [
-                          PopupMenuItem(
-
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit, size: 18.sp, color: AppColor.componentColor),
-                                SizedBox(width: 8.w),
-                                const Text('Edit'),
-                              ],
+                      // --- PERBAIKAN UTAMA: Mengganti PopupMenuButton dengan Row berisi IconButton ---
+                      trailing: SizedBox(
+                        width: 100.w, // Beri lebar agar tidak overflow
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.edit, color: AppColor.componentColor),
+                              onPressed: () {
+                                _showEditDialog(itemContext, id, name);
+                              },
+                              tooltip: 'Edit Nama',
                             ),
-                          ),
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete, size: 18.sp, color: Colors.redAccent),
-                                SizedBox(width: 8.w),
-                                const Text('Hapus', style: TextStyle(color: Colors.redAccent)),
-                              ],
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.redAccent),
+                              onPressed: () {
+                                _showDeleteConfirmationDialog(itemContext, id);
+                              },
+                              tooltip: 'Hapus',
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       onTap: () {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          Navigator.of(context).push(MaterialPageRoute(
-                              builder: (_) => ItineraryResultPage(
-                                    itineraryText: item['content'],
-                                    isFromSaved: true,
-                                  )));
-                        });
+                        Navigator.push(
+                          context, 
+                          MaterialPageRoute(
+                            builder: (context) => ItineraryResultPage(
+                              itineraryText: item['content'],
+                              isFromSaved: true,
+                            ),
+                          ),
+                        );
                       },
                     ),
                   );
@@ -138,10 +147,10 @@ class ListItineraryPage extends StatelessWidget {
         ),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => const ItineraryInputPage()));
-            });
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ItineraryInputPage()),
+            );
           },
           icon: const Icon(Icons.add, color: Colors.white),
           label: const Text(
@@ -154,11 +163,10 @@ class ListItineraryPage extends StatelessWidget {
     );
   }
 
-  void _showEditDialog(
-      BuildContext context, DatabaseReference ref, String id, String oldName) {
+  void _showEditDialog(BuildContext dialogContext, String id, String oldName) {
     final controller = TextEditingController(text: oldName);
     showDialog(
-      context: context,
+      context: dialogContext, 
       builder: (dialogCtx) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.r),
@@ -188,11 +196,46 @@ class ListItineraryPage extends StatelessWidget {
             onPressed: () async {
               final newName = controller.text.trim();
               if (newName.isNotEmpty) {
-                await ref.child(id).update({'name': newName});
+                await _itinerariesRef.child(id).update({'name': newName});
               }
-              Navigator.of(dialogCtx).pop();
+              // Pengecekan mounted tetap aman dilakukan di sini
+              if (mounted) {
+                 Navigator.of(dialogCtx).pop();
+              }
             },
             child: const Text("Simpan", style: TextStyle(color: Colors.white)),
+          )
+        ],
+      ),
+    );
+  }
+  
+  void _showDeleteConfirmationDialog(BuildContext dialogContext, String id) {
+    showDialog(
+      context: dialogContext, 
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        title: const Text("Hapus Itinerary?"),
+        content: const Text("Apakah Anda yakin ingin menghapus itinerary ini secara permanen?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: const Text("Batal"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+            ),
+            onPressed: () {
+              _itinerariesRef.child(id).remove();
+              Navigator.of(dialogCtx).pop();
+            },
+            child: const Text("Hapus", style: TextStyle(color: Colors.white)),
           )
         ],
       ),

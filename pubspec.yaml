@@ -43,6 +43,8 @@ dependencies:
   intl: ^0.18.1
   url_launcher: ^6.3.1
   http: ^0.13.5
+  flutter_launcher_icons: ^0.13.1
+
 
 
 
@@ -63,6 +65,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -85,6 +88,7 @@ flutter:
     - assets/Fonts/img/img-wisata-bu.png
     - assets/Fonts/img/img-wisata-kuliner.png
     - assets/Fonts/img/img-wisata-lainnya.png
+    - assets/Fonts/img/img-logo-app.png
   fonts:
     - family: Shipori
       fonts:
@@ -121,3 +125,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+android: "launcher_icon"
+ios: true
+image_path: "assets/Fonts/img/img-logo-app.png" # <-- Ganti dengan path ikon Anda
+min_sdk_android: 21

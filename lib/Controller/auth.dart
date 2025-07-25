@@ -1,6 +1,8 @@
 import 'package:bbbb/Config/router.dart';
 import 'package:bbbb/Model/user.dart';
+import 'package:bbbb/Pages/login.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -43,6 +45,59 @@ class AuthController extends GetxController {
     }
   }
 
+  Future<void> updateUsername(String newUsername) async {
+    try {
+      final String? uid = _auth.currentUser?.uid;
+      if (uid == null) {
+        throw ("Pengguna tidak ditemukan, silakan login ulang.");
+      }
+
+      // 1. Update username di Firebase Realtime Database
+      await _dbRef.child('users').child(uid).update({
+        'username': newUsername,
+      });
+
+      // 2. Update username di local state (userModel) agar UI langsung berubah
+      if (userModel.value != null) {
+        userModel.value!.username = newUsername;
+        userModel.refresh(); // Memberi tahu GetX bahwa ada perubahan
+      }
+
+      // 3. Tampilkan notifikasi sukses
+      Get.snackbar(
+        'Berhasil',
+        'Username berhasil diperbarui.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Gagal memperbarui username: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      await _auth.signOut();
+      // Mengarahkan ke halaman login dan menghapus semua halaman sebelumnya dari stack
+      Get.offAll(() => const Login()); 
+    } catch (e) {
+       Get.snackbar(
+        'Error',
+        'Gagal melakukan logout: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+    }
+  }
+
   Future<void> register({
     required String email,
     required String password,
@@ -55,7 +110,6 @@ class AuthController extends GetxController {
         password: password,
       );
       User user = cred.user!;
-      // By default new user role is 'user'
       UserModel newUser = UserModel(
         uid: user.uid,
         username: username,
@@ -83,7 +137,5 @@ class AuthController extends GetxController {
     }
   }
 
-  void logout() async {
-    await _auth.signOut();
-  }
+  
 }

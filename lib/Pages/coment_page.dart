@@ -1,3 +1,4 @@
+import 'package:bbbb/Config/color.dart';
 import 'package:bbbb/Controller/commentController.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +24,6 @@ class CommentPage extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Komentar', style: TextStyle(color: Colors.black)),
           backgroundColor: Colors.white,
-          elevation: 1,
           iconTheme: const IconThemeData(color: Colors.black),
         ),
         body: Column(
@@ -62,8 +62,9 @@ class CommentPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           CircleAvatar(
-                            backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=${comment['uid']}'),
-                            radius: 20.r,
+                            backgroundColor:AppColor.componentColor ,
+                            child: Text((comment['name'] ?? 'A')[0].toUpperCase(),style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),),
+                            radius: 15.r,
                           ),
                           SizedBox(width: 12.w),
                           Expanded(

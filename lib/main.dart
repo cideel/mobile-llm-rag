@@ -1,12 +1,14 @@
 import 'package:bbbb/Config/color.dart';
 import 'package:bbbb/Config/router.dart';
 import 'package:bbbb/Controller/auth.dart';
+import 'package:bbbb/Pages/add_admin.dart';
 import 'package:bbbb/Pages/detail_place.dart';
 import 'package:bbbb/Pages/home.dart';
 import 'package:bbbb/Pages/login.dart';
 import 'package:bbbb/Pages/navbar.dart';
 import 'package:bbbb/Pages/register.dart';
 import 'package:bbbb/Pages/search_page.dart';
+import 'package:bbbb/Pages/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -33,6 +35,7 @@ void main() async {
 
   // Baru taruh setelah Firebase siap
   Get.put(AuthController());
+  Get.put(AdminController(), permanent: true); 
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -70,7 +73,7 @@ class MyApp extends StatelessWidget {
             useMaterial3: true,
             scaffoldBackgroundColor: Colors.black,
           ),
-          home: Login(),
+          home: SplashScreen(),
           getPages: MyPage.pages,
         );
       },

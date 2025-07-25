@@ -1,5 +1,6 @@
 import 'package:bbbb/Config/color.dart';
 import 'package:bbbb/Controller/auth.dart';
+import 'package:bbbb/Controller/commentController.dart';
 import 'package:bbbb/Controller/ratingController.dart';
 import 'package:bbbb/Controller/uptrendController.dart';
 import 'package:bbbb/Controller/favoriteController.dart';
@@ -25,6 +26,8 @@ class PlaceDetailPage extends StatelessWidget {
   final FavoriteController favoriteController = Get.put(FavoriteController());
   final AuthController authC            = Get.find<AuthController>();
   final AdminController adminC          = Get.find<AdminController>();
+    final CommentController controller = Get.put(CommentController());
+
   Future<PlaceModel?> fetchPlace(String id) async {
     final snapshot = await FirebaseDatabase.instance.ref('tempat_wisata/$id').get();
     if (snapshot.exists) {
@@ -32,6 +35,18 @@ class PlaceDetailPage extends StatelessWidget {
     }
     return null;
   }
+
+  // Di dalam class _PlaceDetailPageState atau di dalam sebuah controller
+
+Future<int> getCommentCount(String placeId) async {
+  final ref = FirebaseDatabase.instance.ref('comments/$placeId');
+  final snapshot = await ref.get();
+  if (snapshot.exists && snapshot.value != null) {
+    final data = Map<String, dynamic>.from(snapshot.value as Map);
+    return data.length; // Menghitung jumlah key (komentar)
+  }
+  return 0; // Jika tidak ada komentar, kembalikan 0
+}
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +72,6 @@ class PlaceDetailPage extends StatelessWidget {
                 style: const TextStyle(color: Colors.black),
               )),
           backgroundColor: Colors.white,
-          elevation: 0,
           actions: [
             
 if (user?.role == 'admin')
@@ -119,18 +133,6 @@ if (user?.role == 'admin')
                                 ),
                               ),
                             )),
-                      ),
-                      Positioned(
-                        bottom: 16.h,
-                        right: 16.w,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(20.r),
-                          ),
-                          child: Text('Lihat semua foto', style: TextStyle(color: Colors.white, fontSize: 14.sp)),
-                        ),
                       ),
                     ],
                   ),
@@ -199,7 +201,7 @@ if (user?.role == 'admin')
                         ),
                         _infoStat(
                           Icons.location_on,
-                          '${place.distanceKm.toStringAsFixed(1)} km',
+                          'Maps',
                           'Lokasi',
                           Colors.blue.withOpacity(0.2),
                           iconColor: Colors.blue,
@@ -224,8 +226,10 @@ if (user?.role == 'admin')
                               },
                             )),
                         _infoStat(
+                          
                           Icons.comment,
-                          '${place.comments}',
+                          
+                          '${controller.comments.length}',
                           'Komentar',
                           Colors.purple.withOpacity(0.2),
                           iconColor: Colors.purple,
@@ -247,7 +251,7 @@ if (user?.role == 'admin')
                     padding: EdgeInsets.symmetric(horizontal: 16.w),
                     child: Column(
                       children: [
-                        _infoTile(Icons.confirmation_number, 'Tiket Masuk', place.ticketPrice),
+                        _infoTile(Icons.confirmation_number, 'Tiket Masuk atau Harga Menu', place.ticketPrice),
                         _infoTile(Icons.place, 'Alamat', place.address),
                         _infoTile(Icons.phone, 'Telepon', place.noPhone),
                         _infoTile(Icons.camera_alt, 'Instagram', place.socialMedia),

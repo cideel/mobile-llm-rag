@@ -22,7 +22,7 @@ class Favorite extends StatelessWidget {
             appBar: AppBar(
               title: const Text(
                 'Daftar Tempat Favorit',
-                style: TextStyle(fontWeight: FontWeight.bold, fontFamily: "Roboto"),
+                style: TextStyle( fontFamily: "Roboto"),
               ),
               centerTitle: true,
               backgroundColor: Colors.white,

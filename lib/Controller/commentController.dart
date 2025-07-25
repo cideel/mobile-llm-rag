@@ -1,9 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class CommentController extends GetxController {
   final _db = FirebaseDatabase.instance.ref();
+    final RxBool isLoading = true.obs;
+
   final RxList<Map<String, dynamic>> comments = <Map<String, dynamic>>[].obs;
 
   // Mengambil username dari database
@@ -62,6 +65,19 @@ class CommentController extends GetxController {
   await fetchComments(placeId);
 }
 
+Future<void> updateComment(String placeId, String commentId, String newText) async {
+     try {
+       await _db.child('comments').child(placeId).child(commentId).update({
+         'comment': newText,
+         // Anda bisa menambahkan timestamp 'updatedAt' jika perlu
+       });
+       // Refresh komentar setelah update
+       fetchComments(placeId);
+       Get.snackbar("Sukses", "Komentar berhasil diperbarui.", backgroundColor: Colors.green, colorText: Colors.white);
+     } catch (e) {
+       Get.snackbar("Error", "Gagal memperbarui komentar: ${e.toString()}");
+     }
+  }
 
   // Menghapus komentar
   Future<void> deleteComment(String placeId, String commentId) async {
